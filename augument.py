@@ -7,30 +7,13 @@ import glob
 import os
 import shutil
 import tqdm
+from transform import  Augumentation
 ###
-### this code woeks only open image with only one bbox
+### this code woeks only open image with multiple bbox
 ###
-transform = A.Compose(
-    [
-        # A.Resize(640,480),
-        # A.RandomCrop(1920,1080),
-        A.OneOf(
-            [A.CenterCrop(1080, 1920,p=0.5),
-            A.RandomCrop(1080, 1920,p=0.5)],p=1
-        ),
-        # A.CenterCrop(1080, 1920),
-        A.Rotate(limit=45,p=0.9,border_mode=cv2.BORDER_CONSTANT),
-        A.HorizontalFlip(p=0.5),
-        A.VerticalFlip(p=0.3), 
-        # A.ToGray(p=1), 
-        A.Blur(blur_limit=3,p=0.3),
-        A.GaussNoise(p=0.3),
-        A.ISONoise(p=0.3),
 
-    ],
-    bbox_params=A.BboxParams(format="yolo",min_visibility=0.7,label_fields = [])
-)
-
+## TODO for now it is hardcode for the size
+aug = Augumentation()
 if __name__ == '__main__':
     
     parser  = argparse.ArgumentParser()
@@ -47,10 +30,14 @@ if __name__ == '__main__':
         name = str(file.split(".")[:-1][0])+".txt"
         # print(name)
         # print(bboxes)
+        out = []
         if name in bbox_source:
             #TODO this only process one ine
             with open(Path(opt.b)/name,"r") as f:
-                out = f.read()[0:-1].split(" ")[1:]
+                for line in f:
+                    line_list = line.rstrip("\n").split(" ")[1:]
+                    float_list = list(map(float,line_list))
+                    out.append(float_list)
                 bboxes[file] = out
     
     if  os.path.exists(opt.o):
@@ -66,28 +53,44 @@ if __name__ == '__main__':
         file_pth = Path(opt.s)/file
         file_pth = file_pth.as_posix()
         image = cv2.imread(file_pth)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        image = cv2.resize(image,(1920,1080))
+
         
         count = 0
+        fail_count = 0
         while count < opt.n:
-            bbox_result = [list(map(float,bboxes[file]))]
-            augumentation = transform(image = image,bboxes =bbox_result)
+            bbox_result = bboxes[file]
+            augumentation = aug.transform( image,bbox_result)
             # print(augumentation['bboxes'])
             if len(augumentation['bboxes'])==0:
+                fail_count += 1
+                #don't wast time on keep failing image
+                if fail_count > 100:
+                    print(f"{file} keep fail for 100 times skip this image,change mode")
+                    #resize to solve issue
+                    aug.changeStatus()
                 continue
             au_img = augumentation['image']
-            box = augumentation['bboxes'][0]
+            box = augumentation['bboxes']
             cv2.imwrite(opt.o+"/images/"+str(index)+".jpg",au_img)
 
-            string_box = [str(i) for i in box]
-            string_box = ["0"]+string_box
+            strings = []
+            for bbox in box:
+
+                string_box = [str(i) for i in bbox]
+                string_box = ["0"]+string_box
+                strings.append(string_box)
 
             with open(opt.o+"/labels/"+str(index)+".txt","w") as f:
-                f.writelines(" ".join(string_box))
-
+                for s in strings:
+                    f.writelines(" ".join(s)+"\n")
+                    
+        
             count+=1
             index+=1
-
+        #change back to the original tranform
+        aug.changeStatus(0)
             # break
 
 
