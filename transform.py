@@ -7,8 +7,8 @@ class Augumentation():
                 # A.Resize(640,480),
                 # A.RandomCrop(1920,1080),
                 A.OneOf(
-                    [A.CenterCrop(480, 640,p=0.8),
-                    A.RandomCrop(480, 640,p=0.2)],p=1
+                    [A.CenterCrop(480, 640,p=0.2),
+                    A.RandomCrop(480, 640,p=0.8)],p=1
                 ),
 
                 # A.CenterCrop(1080, 1920),
@@ -16,13 +16,13 @@ class Augumentation():
                 # A.HorizontalFlip(p=0.5),
                 # A.VerticalFlip(p=0.3), 
                 # A.ToGray(p=1), 
-                A.Affine(shear=30,p=0.3),
-                A.Blur(blur_limit=3,p=0.3),
+                A.Affine(shear=20,p=0.3),
+                # A.Blur(blur_limit=1,p=0.3),
                 A.GaussNoise(p=0.3),
                 A.ISONoise(p=0.3),
 
             ],
-            bbox_params=A.BboxParams(format="yolo",min_visibility=0.7,label_fields = [])
+            bbox_params=A.BboxParams(format="yolo",min_visibility=0.5,label_fields = [])
         )
         # self.s_option = A.Compose(
         #     [
@@ -51,9 +51,10 @@ class Augumentation():
     def transform(self,img,box):
         result = None
         if self.status == 0:
+            # img = cv2.resize(img, (960,1080))
             result = self.default(image = img,bboxes=box)
         elif self.status ==1:
-            img = cv2.resize(img, (640,480))
+            img = cv2.resize(img, (960,1080))
             result = self.default(image = img,bboxes=box)
         return result
 

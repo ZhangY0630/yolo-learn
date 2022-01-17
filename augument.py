@@ -54,7 +54,7 @@ if __name__ == '__main__':
         file_pth = file_pth.as_posix()
         image = cv2.imread(file_pth)
         # image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image,(1920,1080))
+        image = cv2.resize(image,(1080,960))
 
         
         count = 0
